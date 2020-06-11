@@ -1,18 +1,26 @@
 
 const express = require('express');
-const app = express();
 const mongoose = require('mongoose');
-const cors = require('cors');
 const cookie = require('cookie-parser');
-const config = require('./env/config');
+const cors = require('cors');
 
+const config = require('./env/config');
 const auth = require('./src/routes/auth.route');
 
-app.use('/auth', auth);
+const app = express();
+
+
 
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 app.use(cookie());
 app.use(express.json());
+
+
+// ROUTES
+
+app.use('/auth', auth);
+
+
 
 // Connect to mongo 
 

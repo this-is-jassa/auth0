@@ -22,8 +22,7 @@ const userSchema = new mongoose.Schema({
     date: {
         type: Date,
         default: Date.now
-    },
-    session: Array
+    }
 });
 
-module.exports = mongoose.model('user', userSchema);
+module.exports = mongoose.model('newUser', userSchema);
