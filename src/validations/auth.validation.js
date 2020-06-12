@@ -12,6 +12,5 @@ const loginValidation = joi.object({
     password: joi.string().min(8).max(1024).required()
 });
 
-
 module.exports.registerValidation = registerValidation;
 module.exports.loginValidation = loginValidation;

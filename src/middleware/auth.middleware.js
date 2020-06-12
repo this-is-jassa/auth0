@@ -19,8 +19,10 @@ login = async (req, res) => {
         const user = await userModel.findOne({ email: email });
         if (!user) throw messages.NO_MAIL_FOUND;
 
+
         const passwordMatched = await bcrypt.compare(password, user.password);
         if (!passwordMatched) throw messages.PASSWORD_INCORRECT;
+
 
         const tokens = await Promise.all([jwt.sign({ _id: user._id }, config.accessSecret, { expiresIn: "1h" }), jwt.sign({ _id: user._id }, config.refreshSecret, { expiresIn: "1d" })])
 
@@ -29,8 +31,8 @@ login = async (req, res) => {
 
         res.cookie('auth-token', tokens[1], {
             expires: expireDate,
-            secure: true,
-            httpOnly: true
+            secure: false,
+            httpOnly: false
         }).send({ accessToken: tokens[0] });
     }
     catch (err) {
@@ -78,8 +80,8 @@ register = async (req, res) => {
 
         res.cookie('auth-token', tokens[1], {
             expires: expireDate,
-            secure: true,
-            httpOnly: true
+            secure: false,
+            httpOnly: false
         }).send({ _id: user._id, accessToken: tokens[0] });
 
 
@@ -94,14 +96,9 @@ register = async (req, res) => {
 logout = async (req, res) => {
 
     try {
+        console.log('reached');
 
-        const refreshToken = req.cookie['auth-token'];
-        const { accessToken } = req.body;
-        
-        if (!refreshToken || !accessToken) throw messages.LOGOUT_WITHOUT_TOKEN;
-        await Promise.all([jwt.verify(refreshToken, config.refreshSecret), jwt.verify(accessToken, config.accessSecret)])
-
-        res.clearCookie('auth-token').send({});
+        res.clearCookie('auth-token').send('ok');
 
     } catch (err) {
         res.status(400).send({ message: err })
@@ -109,6 +106,45 @@ logout = async (req, res) => {
 
 }
 
+
+verify = (req, res, next) => {
+
+    try {
+
+
+        const refreshToken = req.cookies['auth-token'];
+        const { accessToken } = req.body;
+
+
+        jwt.verify(refreshToken, config.refreshSecret, (err, payload) => {
+
+            if (err || (Date.now() >= payload.exp * 1000)) throw messages.INVALID_TOKEN;
+            
+
+            jwt.verify(accessToken, config.accessSecret, (err2, payload2) => {
+
+                if (err2) throw messages.INVALID_TOKEN
+
+                if ((Date.now() >= payload2.exp * 1000)) {
+                    
+                    const newAccessToken = jwt.sign({ _id: payload._id }, config.accessSecret, { expiresIn: "1h" });
+                    req.body.accessToken = newAccessToken;
+                } 
+
+                next();
+            });
+
+        });
+
+    }
+    catch (err) {
+        res.status(400).send(err);
+    }
+
+}
+
+
 module.exports.login = login;
 module.exports.register = register;
 module.exports.logout = logout;
+module.exports.verify = verify;
